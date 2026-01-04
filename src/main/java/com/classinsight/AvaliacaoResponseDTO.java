@@ -11,25 +11,13 @@ import java.time.format.DateTimeFormatter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AvaliacaoResponseDTO {
-    private String Descricao;
-    private String Urgencia;
-    private String DataEnvio;
+    private String descricao;
+    private Urgencia urgencia;
+    private String dataEnvio;
     
-    public AvaliacaoResponseDTO(String descricao, double nota) {
-        this.Descricao = descricao + " - Nota: " + nota;
-        this.Urgencia = defineUrgencia(nota);
-        this.DataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-    }
-
-    private String defineUrgencia(double nota) {
-        if (nota <= 2) {
-            return "CRITICO";
-        } else if (nota <= 5) {
-            return "ALTA";
-        } else if (nota <= 7) {
-            return "MEDIA";
-        } else {
-            return "BAIXA";
-        }
+    public AvaliacaoResponseDTO(String descricao, Double nota) {
+        this.descricao = descricao + " - Nota: " + nota;
+        this.urgencia = Urgencia.fromNota(nota);
+        this.dataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
 }

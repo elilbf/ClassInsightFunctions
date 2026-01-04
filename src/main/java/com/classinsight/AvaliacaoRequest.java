@@ -9,5 +9,5 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class AvaliacaoRequest {
     private String descricao;
-    private double nota;
+    private Double nota;
 }
