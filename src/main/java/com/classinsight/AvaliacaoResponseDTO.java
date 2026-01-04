@@ -17,7 +17,19 @@ public class AvaliacaoResponseDTO {
     
     public AvaliacaoResponseDTO(String descricao, double nota) {
         this.Descricao = descricao + " - Nota: " + nota;
-        this.Urgencia = "URGENCIA";
+        this.Urgencia = defineUrgencia(nota);
         this.DataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+    }
+
+    private String defineUrgencia(double nota) {
+        if (nota <= 2) {
+            return "CRITICO";
+        } else if (nota <= 5) {
+            return "ALTA";
+        } else if (nota <= 7) {
+            return "MEDIA";
+        } else {
+            return "BAIXA";
+        }
     }
 }
