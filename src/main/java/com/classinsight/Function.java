@@ -34,62 +34,52 @@ public class Function {
         try {
             String requestBody = request.getBody().orElse(null);
 
+            // Validar corpo da requisição
             ValidationUtils.ValidationResult bodyCheck = ValidationUtils.validateRequestBody(requestBody);
             if (!bodyCheck.isValid()) {
-                return request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(bodyCheck.getMessage()).build();
+                return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
+                    .body(bodyCheck.getMessage())
+                    .build();
             }
 
-            if (responseBuilder == null) {
-                AvaliacaoRequest avaliacaoRequest = objectMapper.readValue(requestBody, AvaliacaoRequest.class);
-                
-                result = ValidationUtils.validateAvaliacaoRequest(avaliacaoRequest);
-                if (!result.isValid()) {
-                    responseBuilder = request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(result.getMessage());
-                } else {
-                    // Insere no banco de dados
-                    long avaliacaoId = AvaliacaoDAO.inserirAvaliacao(avaliacaoRequest);
-                    
-                    if (avaliacaoId > 0) {
-                        context.getLogger().info("Avaliação inserida com ID: " + avaliacaoId);
-                        
-                        // Cria response com ID gerado
-                        AvaliacaoResponse responseData = new AvaliacaoResponse(
-                            avaliacaoId,
-                            avaliacaoRequest.getDescricao(),
-                            avaliacaoRequest.getNota(),
-                            java.time.LocalDateTime.now().toString()
-                        );
-                        
-                        String jsonResponse = objectMapper.writeValueAsString(responseData);
-                        responseBuilder = request.createResponseBuilder(HttpStatus.CREATED)
-                            .header("Content-Type", "application/json")
-                            .body(jsonResponse);
-                    } else {
-                        context.getLogger().severe("Erro ao inserir avaliação no banco de dados");
-                        responseBuilder = request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Erro ao persistir avaliação no banco de dados");
-                    }
-                }
+            // Parse JSON para objeto
+            AvaliacaoRequest avaliacaoRequest = objectMapper.readValue(requestBody, AvaliacaoRequest.class);
+            
+            // Validar objeto AvaliacaoRequest
+            ValidationUtils.ValidationResult validationResult = ValidationUtils.validateAvaliacaoRequest(avaliacaoRequest);
+            if (!validationResult.isValid()) {
+                return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
+                    .body(validationResult.getMessage())
+                    .build();
             }
 
-            // Processamento em serviço separado
+            // Insere no banco de dados via serviço
             AvaliacaoResponseDTO responseDTO = AvaliacaoService.process(avaliacaoRequest);
-            String jsonResponse = objectMapper.writeValueAsString(responseDTO);
-            return request.createResponseBuilder(HttpStatus.OK)
+            
+            if (responseDTO != null && responseDTO.getDescricao() != null) {
+                context.getLogger().info("Avaliação processada com sucesso");
+                String jsonResponse = objectMapper.writeValueAsString(responseDTO);
+                return request.createResponseBuilder(HttpStatus.CREATED)
                     .header("Content-Type", "application/json")
                     .body(jsonResponse)
                     .build();
+            } else {
+                context.getLogger().severe("Erro ao persistir avaliação no banco de dados");
+                return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao persistir avaliação no banco de dados")
+                    .build();
+            }
 
         } catch (JsonParseException | JsonMappingException e) {
             context.getLogger().severe("JSON parsing/mapping error: " + e.getMessage());
             return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
-                    .body("JSON malformado ou com formato inválido. Verifique campos 'descricao' e 'nota'.")
-                    .build();
+                .body("JSON malformado ou com formato inválido. Verifique campos 'descricao' e 'nota'.")
+                .build();
         } catch (Exception e) {
             context.getLogger().severe("Error processing request: " + e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing request: " + e.getMessage())
-                    .build();
+                .body("Error processing request: " + e.getMessage())
+                .build();
         }
     }
 }

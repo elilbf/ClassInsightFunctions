@@ -48,7 +48,7 @@ public class ValidationUtils {
     }
     
     /**
-     * Valida um objeto AvaliacaoRequest.
+     * Valida um objeto AvaliacaoRequest (versão booleana simples).
      * @param request Objeto a validar
      * @return true se válido, false caso contrário
      */
@@ -59,7 +59,8 @@ public class ValidationUtils {
         if (request.getDescricao() == null || request.getDescricao().trim().isEmpty()) {
             return false;
         }
-        if (request.getNota() < 0 || request.getNota() > 5) {
+        Double nota = request.getNota();
+        if (nota == null || nota < 0 || nota > 10) {
             return false;
         }
         return true;
