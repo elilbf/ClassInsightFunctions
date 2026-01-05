@@ -47,6 +47,24 @@ public class ValidationUtils {
         return ValidationResult.success();
     }
     
+    /**
+     * Valida um objeto AvaliacaoRequest.
+     * @param request Objeto a validar
+     * @return true se válido, false caso contrário
+     */
+    public static boolean isValid(AvaliacaoRequest request) {
+        if (request == null) {
+            return false;
+        }
+        if (request.getDescricao() == null || request.getDescricao().trim().isEmpty()) {
+            return false;
+        }
+        if (request.getNota() < 0 || request.getNota() > 5) {
+            return false;
+        }
+        return true;
+    }
+    
     public static ValidationResult validateNotaField(String requestBody) {
         if (!requestBody.contains("\"nota\":")) {
             return ValidationResult.success(); // Será validado em validateRequiredFields

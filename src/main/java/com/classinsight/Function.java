@@ -61,16 +61,29 @@ public class Function {
                 if (!result.isValid()) {
                     responseBuilder = request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(result.getMessage());
                 } else {
-                    // Cria response DTO com os dados validados
-                    AvaliacaoResponseDTO responseDTO = new AvaliacaoResponseDTO(
-                        avaliacaoRequest.getDescricao(),
-                        avaliacaoRequest.getNota()
-                    );
+                    // Insere no banco de dados
+                    long avaliacaoId = AvaliacaoDAO.inserirAvaliacao(avaliacaoRequest);
                     
-                    String jsonResponse = objectMapper.writeValueAsString(responseDTO);
-                    responseBuilder = request.createResponseBuilder(HttpStatus.OK)
-                        .header("Content-Type", "application/json")
-                        .body(jsonResponse);
+                    if (avaliacaoId > 0) {
+                        context.getLogger().info("Avaliação inserida com ID: " + avaliacaoId);
+                        
+                        // Cria response com ID gerado
+                        AvaliacaoResponse responseData = new AvaliacaoResponse(
+                            avaliacaoId,
+                            avaliacaoRequest.getDescricao(),
+                            avaliacaoRequest.getNota(),
+                            java.time.LocalDateTime.now().toString()
+                        );
+                        
+                        String jsonResponse = objectMapper.writeValueAsString(responseData);
+                        responseBuilder = request.createResponseBuilder(HttpStatus.CREATED)
+                            .header("Content-Type", "application/json")
+                            .body(jsonResponse);
+                    } else {
+                        context.getLogger().severe("Erro ao inserir avaliação no banco de dados");
+                        responseBuilder = request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Erro ao persistir avaliação no banco de dados");
+                    }
                 }
             }
             
