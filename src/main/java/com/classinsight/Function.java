@@ -11,6 +11,7 @@ import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.classinsight.service.AvaliacaoService;
 
 import java.util.Optional;
 
@@ -32,26 +33,10 @@ public class Function {
 
         try {
             String requestBody = request.getBody().orElse(null);
-            HttpResponseMessage.Builder responseBuilder = null;
-            
-            // Validações usando ValidationUtils
-            ValidationUtils.ValidationResult result = ValidationUtils.validateRequestBody(requestBody);
-            if (!result.isValid()) {
-                responseBuilder = request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(result.getMessage());
-            }
-            
-            if (responseBuilder == null) {
-                result = ValidationUtils.validateRequiredFields(requestBody);
-                if (!result.isValid()) {
-                    responseBuilder = request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(result.getMessage());
-                }
-            }
-            
-            if (responseBuilder == null) {
-                result = ValidationUtils.validateNotaField(requestBody);
-                if (!result.isValid()) {
-                    responseBuilder = request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(result.getMessage());
-                }
+
+            ValidationUtils.ValidationResult bodyCheck = ValidationUtils.validateRequestBody(requestBody);
+            if (!bodyCheck.isValid()) {
+                return request.createResponseBuilder(HttpStatus.BAD_REQUEST).body(bodyCheck.getMessage()).build();
             }
 
             if (responseBuilder == null) {
@@ -86,22 +71,25 @@ public class Function {
                     }
                 }
             }
-            
-            // Único return do método
-            return responseBuilder.build();
-                
-        } catch (JsonParseException e) {
-            context.getLogger().severe("JSON parsing error: " + e.getMessage());
+
+            // Processamento em serviço separado
+            AvaliacaoResponseDTO responseDTO = AvaliacaoService.process(avaliacaoRequest);
+            String jsonResponse = objectMapper.writeValueAsString(responseDTO);
+            return request.createResponseBuilder(HttpStatus.OK)
+                    .header("Content-Type", "application/json")
+                    .body(jsonResponse)
+                    .build();
+
+        } catch (JsonParseException | JsonMappingException e) {
+            context.getLogger().severe("JSON parsing/mapping error: " + e.getMessage());
             return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
-                .body("JSON malformado. Verifique se todas as chaves e aspas estão corretas.").build();
-        } catch (JsonMappingException e) {
-            context.getLogger().severe("JSON mapping error: " + e.getMessage());
-            return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
-                .body("Formato JSON inválido. Verifique se os campos 'descricao' (string) e 'nota' (número) estão corretos.").build();
+                    .body("JSON malformado ou com formato inválido. Verifique campos 'descricao' e 'nota'.")
+                    .build();
         } catch (Exception e) {
             context.getLogger().severe("Error processing request: " + e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error processing request: " + e.getMessage()).build();
+                    .body("Error processing request: " + e.getMessage())
+                    .build();
         }
     }
 }

@@ -98,25 +98,35 @@ public class ValidationUtils {
     }
     
     public static ValidationResult validateAvaliacaoRequest(AvaliacaoRequest request) {
+        if (request == null) {
+            return ValidationResult.error("Requisição inválida");
+        }
+
         // Validar descrição
         if (request.getDescricao() == null || request.getDescricao().trim().isEmpty()) {
             return ValidationResult.error("É obrigatório informar uma descrição");
         }
-        
-        // Validar nota range
-        if (request.getNota() < 0 || request.getNota() > 10) {
-            return ValidationResult.error("Nota precisa ser um numero entre 0 e 10");
+
+        // Validar nota não nula
+        if (request.getNota() == null) {
+            return ValidationResult.error("É obrigatório informar a nota");
         }
-        
+
+        double nota = request.getNota();
         // Validar valores especiais do double
-        if (Double.isNaN(request.getNota())) {
+        if (Double.isNaN(nota)) {
             return ValidationResult.error("Nota não pode ser NaN (Not a Number)");
         }
-        
-        if (Double.isInfinite(request.getNota())) {
+
+        if (Double.isInfinite(nota)) {
             return ValidationResult.error("Nota não pode ser infinita");
         }
-        
+
+        // Validar nota range
+        if (nota < 0 || nota > 10) {
+            return ValidationResult.error("Nota precisa ser um numero entre 0 e 10");
+        }
+
         return ValidationResult.success();
     }
 }

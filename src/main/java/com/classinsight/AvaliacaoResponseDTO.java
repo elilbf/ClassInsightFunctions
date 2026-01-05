@@ -11,13 +11,13 @@ import java.time.format.DateTimeFormatter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AvaliacaoResponseDTO {
-    private String Descricao;
-    private String Urgencia;
-    private String DataEnvio;
+    private String descricao;
+    private Urgencia urgencia;
+    private String dataEnvio;
     
-    public AvaliacaoResponseDTO(String descricao, double nota) {
-        this.Descricao = descricao + " - Nota: " + nota;
-        this.Urgencia = "URGENCIA";
-        this.DataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+    public AvaliacaoResponseDTO(String descricao, Double nota) {
+        this.descricao = descricao + " - Nota: " + nota;
+        this.urgencia = Urgencia.fromNota(nota);
+        this.dataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
 }
