@@ -15,15 +15,8 @@ CREATE TABLE avaliacoes (
     descricao NVARCHAR(500) NOT NULL,
     nota DECIMAL(3,1) NOT NULL,
     data_criacao DATETIME DEFAULT GETDATE(),
+    urgencia NVARCHAR(10) NOT NULL DEFAULT 'BAIXA',
     CHECK (nota >= 0 AND nota <= 5)
-);
-
--- 4. Criar tabela de Relatórios
-CREATE TABLE relatorios (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    total_avaliacoes INT,
-    media_notas DECIMAL(3,2),
-    data_geracao DATETIME DEFAULT GETDATE()
 );
 
 -- 5. Criar índices para melhor performance
@@ -37,9 +30,6 @@ SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo';
 -- 7. Verificar estrutura das tabelas
 SELECT 'Estrutura da tabela avaliacoes:' AS Status;
 EXEC sp_columns avaliacoes;
-
-SELECT 'Estrutura da tabela relatorios:' AS Status;
-EXEC sp_columns relatorios;
 
 -- Pronto! Agora você pode fazer requisições para a Azure Function
 -- Os dados serão salvos aqui automaticamente

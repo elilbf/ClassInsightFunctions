@@ -22,7 +22,7 @@ public class AvaliacaoDAO {
      * @return ID da avaliação inserida, ou -1 se falhar
      */
     public static long inserirAvaliacao(AvaliacaoRequest avaliacao) {
-        String sql = "INSERT INTO avaliacoes (descricao, nota, data_criacao) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO avaliacoes (descricao, nota, data_criacao, urgencia) VALUES (?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -30,6 +30,9 @@ public class AvaliacaoDAO {
             pstmt.setString(1, avaliacao.getDescricao());
             pstmt.setDouble(2, avaliacao.getNota());
             pstmt.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            // Calcular urgência a partir da nota
+            Urgencia urg = Urgencia.fromNota(avaliacao.getNota());
+            pstmt.setString(4, urg.name());
             
             pstmt.executeUpdate();
             
@@ -58,7 +61,7 @@ public class AvaliacaoDAO {
      * @return AvaliacaoResponse ou null se não encontrado
      */
     public static AvaliacaoResponse obterAvaliacao(long id) {
-        String sql = "SELECT id, descricao, nota, data_criacao FROM avaliacoes WHERE id = ?";
+        String sql = "SELECT id, descricao, nota, data_criacao, urgencia FROM avaliacoes WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -67,10 +70,13 @@ public class AvaliacaoDAO {
             
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
+                    String urgStr = rs.getString("urgencia");
+                    Urgencia urgObj = (urgStr == null) ? Urgencia.BAIXA : Urgencia.valueOf(urgStr);
                     return new AvaliacaoResponse(
                         rs.getLong("id"),
                         rs.getString("descricao"),
                         rs.getDouble("nota"),
+                        urgObj,
                         rs.getTimestamp("data_criacao").toLocalDateTime().toString()
                     );
                 }
@@ -86,7 +92,7 @@ public class AvaliacaoDAO {
      * @return Lista de AvaliacaoResponse
      */
     public static List<AvaliacaoResponse> obterTodas() {
-        String sql = "SELECT id, descricao, nota, data_criacao FROM avaliacoes ORDER BY data_criacao DESC";
+        String sql = "SELECT id, descricao, nota, data_criacao, urgencia FROM avaliacoes ORDER BY data_criacao DESC";
         List<AvaliacaoResponse> lista = new ArrayList<>();
         
         try (Connection conn = DatabaseManager.getConnection();
@@ -94,10 +100,13 @@ public class AvaliacaoDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
+                String urgStr = rs.getString("urgencia");
+                Urgencia urgObj = (urgStr == null) ? Urgencia.BAIXA : Urgencia.valueOf(urgStr);
                 lista.add(new AvaliacaoResponse(
                     rs.getLong("id"),
                     rs.getString("descricao"),
                     rs.getDouble("nota"),
+                    urgObj,
                     rs.getTimestamp("data_criacao").toLocalDateTime().toString()
                 ));
             }
@@ -113,7 +122,7 @@ public class AvaliacaoDAO {
      * @return Lista de AvaliacaoResponse
      */
     public static List<AvaliacaoResponse> obterPorNotaMinima(double notaMinima) {
-        String sql = "SELECT id, descricao, nota, data_criacao FROM avaliacoes WHERE nota >= ? ORDER BY nota DESC";
+        String sql = "SELECT id, descricao, nota, data_criacao, urgencia FROM avaliacoes WHERE nota >= ? ORDER BY nota DESC";
         List<AvaliacaoResponse> lista = new ArrayList<>();
         
         try (Connection conn = DatabaseManager.getConnection();
@@ -123,10 +132,13 @@ public class AvaliacaoDAO {
             
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
+                    String urgStr = rs.getString("urgencia");
+                    Urgencia urgObj = (urgStr == null) ? Urgencia.BAIXA : Urgencia.valueOf(urgStr);
                     lista.add(new AvaliacaoResponse(
                         rs.getLong("id"),
                         rs.getString("descricao"),
                         rs.getDouble("nota"),
+                        urgObj,
                         rs.getTimestamp("data_criacao").toLocalDateTime().toString()
                     ));
                 }
@@ -144,14 +156,15 @@ public class AvaliacaoDAO {
      * @return true se atualizado com sucesso
      */
     public static boolean atualizarAvaliacao(long id, AvaliacaoRequest avaliacao) {
-        String sql = "UPDATE avaliacoes SET descricao = ?, nota = ? WHERE id = ?";
+        String sql = "UPDATE avaliacoes SET descricao = ?, nota = ?, urgencia = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, avaliacao.getDescricao());
             pstmt.setDouble(2, avaliacao.getNota());
-            pstmt.setLong(3, id);
+            pstmt.setString(3, Urgencia.fromNota(avaliacao.getNota()).name());
+            pstmt.setLong(4, id);
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

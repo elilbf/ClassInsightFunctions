@@ -5,6 +5,7 @@ import com.classinsight.AvaliacaoRequest;
 import com.classinsight.AvaliacaoResponseDTO;
 import com.classinsight.AvaliacaoResponse;
 import com.classinsight.Urgencia;
+import com.classinsight.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +29,19 @@ public class AvaliacaoService {
             Urgencia urgencia = Urgencia.fromNota(request.getNota());
             String dataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
             
-            return new AvaliacaoResponseDTO(descricao, urgencia, dataEnvio);
+            AvaliacaoResponseDTO dto = new AvaliacaoResponseDTO(descricao, urgencia, dataEnvio);
+
+            // 3. Se urgência for CRITICO ou ALTA, publica notificação
+            if (urgencia == Urgencia.CRITICO || urgencia == Urgencia.ALTA) {
+                try {
+                    NotificationService.publishNotification(dto);
+                    System.out.println("🔔 Notificação publicada para urgência: " + urgencia);
+                } catch (Exception e) {
+                    System.err.println("Erro ao publicar notificação: " + e.getMessage());
+                }
+            }
+
+            return dto;
         } catch (Exception e) {
             System.err.println("❌ Erro ao processar avaliação: " + e.getMessage());
             e.printStackTrace();

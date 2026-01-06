@@ -11,5 +11,6 @@ public class AvaliacaoResponse {
     private long id;
     private String descricao;
     private double nota;
+    private Urgencia urgencia;
     private String dataCriacao;
 }
