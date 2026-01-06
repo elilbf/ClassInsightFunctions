@@ -1,6 +1,12 @@
-package com.classinsight;
+package com.classinsight.controller;
+
+import com.classinsight.dto.request.AvaliacaoRequest;
+import com.classinsight.dto.response.AvaliacaoResponseDTO;
+import com.classinsight.service.AvaliacaoService;
+import com.classinsight.util.ValidationUtilsRefactored;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpMethod;
 import com.microsoft.azure.functions.HttpRequestMessage;
@@ -9,15 +15,18 @@ import com.microsoft.azure.functions.HttpStatus;
 import com.microsoft.azure.functions.annotation.AuthorizationLevel;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.classinsight.service.AvaliacaoService;
 
 import java.util.Optional;
 
 /**
- * Azure Functions with HTTP Trigger.
+ * Controller para Azure Function de avaliação.
+ * Versão refatorada para melhor organização.
+ * LEGADO: Manter para compatibilidade, substituir por controllers modernos.
  */
+@Deprecated
 public class Function {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -35,7 +44,7 @@ public class Function {
             String requestBody = request.getBody().orElse(null);
 
             // Validar corpo da requisição
-            ValidationUtils.ValidationResult bodyCheck = ValidationUtils.validateRequestBody(requestBody);
+            ValidationUtilsRefactored.ValidationResult bodyCheck = ValidationUtilsRefactored.validateRequestBody(requestBody);
             if (!bodyCheck.isValid()) {
                 return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
                     .body(bodyCheck.getMessage())
@@ -46,14 +55,9 @@ public class Function {
             AvaliacaoRequest avaliacaoRequest = objectMapper.readValue(requestBody, AvaliacaoRequest.class);
             
             // Validar objeto AvaliacaoRequest
-            ValidationUtils.ValidationResult validationResult = ValidationUtils.validateAvaliacaoRequest(avaliacaoRequest);
-            if (!validationResult.isValid()) {
-                return request.createResponseBuilder(HttpStatus.BAD_REQUEST)
-                    .body(validationResult.getMessage())
-                    .build();
-            }
+            ValidationUtilsRefactored.validateAvaliacaoRequest(avaliacaoRequest);
 
-            // Insere no banco de dados via serviço
+            // Processar via serviço
             AvaliacaoResponseDTO responseDTO = AvaliacaoService.process(avaliacaoRequest);
             
             if (responseDTO != null && responseDTO.getDescricao() != null) {
@@ -78,8 +82,8 @@ public class Function {
         } catch (Exception e) {
             context.getLogger().severe("Error processing request: " + e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error processing request: " + e.getMessage())
-                .build();
+                    .body("Error processing request: " + e.getMessage())
+                    .build();
         }
     }
 }

@@ -1,20 +1,20 @@
-package com.classinsight;
+package com.classinsight.config;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
  * Gerenciador de conexão com o banco de dados.
- * Suporta Azure SQL, MySQL, PostgreSQL.
+ * Versão refatorada para melhor organização.
+ * LEGADO: Manter para compatibilidade, substituir por configuration management.
  */
+@Deprecated
 public class DatabaseManager {
     
     // Variáveis de conexão (virão de environment variables)
     private static final String DB_URL = System.getenv("DB_URL");
     private static final String DB_USER = System.getenv("DB_USER");
     private static final String DB_PASSWORD = System.getenv("DB_PASSWORD");
-    
     private static final String DRIVER_CLASS = System.getenv("DB_DRIVER") != null 
         ? System.getenv("DB_DRIVER") 
         : "com.microsoft.sqlserver.jdbc.SQLServerDriver";
@@ -43,7 +43,7 @@ public class DatabaseManager {
         }
         
         try {
-            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            Connection conn = java.sql.DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
             System.out.println("✅ Conexão com BD estabelecida com sucesso");
             return conn;
         } catch (SQLException e) {
