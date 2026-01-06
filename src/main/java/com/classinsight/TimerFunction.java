@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 /**
  * Azure Functions with Timer Trigger.
- * Executa a cada 1 minuto para gerar relatório de avaliações.
+ * Executa a cada 1 hora para gerar relatório de avaliações.
  */
 public class TimerFunction {
     
@@ -20,7 +20,7 @@ public class TimerFunction {
     public void relatorioAvaliacoes(
             @TimerTrigger(
                 name = "processarTimer",
-                schedule = "0 */1 * * * *") // A cada 1 minuto
+                schedule = "0 0 * * * *") // A cada 1 hora (no início de cada hora)
             String timerInfo,
             final ExecutionContext context) {
         context.getLogger().info("Processamento agendado de avaliações iniciado: " + timerInfo);
