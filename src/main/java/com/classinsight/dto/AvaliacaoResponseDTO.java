@@ -1,5 +1,6 @@
-package com.classinsight;
+package com.classinsight.dto;
 
+import com.classinsight.model.Urgencia;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;

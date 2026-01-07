@@ -1,11 +1,9 @@
 package com.classinsight.service;
 
-import com.classinsight.AvaliacaoDAO;
-import com.classinsight.AvaliacaoRequest;
-import com.classinsight.AvaliacaoResponseDTO;
-import com.classinsight.AvaliacaoResponse;
-import com.classinsight.Urgencia;
-import com.classinsight.service.NotificationService;
+import com.classinsight.dao.AvaliacaoDAO;
+import com.classinsight.model.AvaliacaoRequest;
+import com.classinsight.dto.AvaliacaoResponseDTO;
+import com.classinsight.model.Urgencia;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

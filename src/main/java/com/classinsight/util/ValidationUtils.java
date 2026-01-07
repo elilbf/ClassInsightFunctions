@@ -1,4 +1,6 @@
-package com.classinsight;
+package com.classinsight.util;
+
+import com.classinsight.model.AvaliacaoRequest;
 
 public class ValidationUtils {
     

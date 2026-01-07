@@ -1,4 +1,10 @@
-package com.classinsight;
+package com.classinsight.dao;
+
+import com.classinsight.config.DatabaseManager;
+import com.classinsight.model.AvaliacaoRequest;
+import com.classinsight.model.AvaliacaoResponse;
+import com.classinsight.model.AvaliacaoStats;
+import com.classinsight.model.Urgencia;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

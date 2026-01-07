@@ -1,8 +1,12 @@
-package com.classinsight;
+package com.classinsight.functions;
 
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.TimerTrigger;
+import com.classinsight.model.AvaliacaoResponse;
+import com.classinsight.model.Urgencia;
+import com.classinsight.dao.AvaliacaoDAO;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -14,7 +18,7 @@ import java.util.stream.Collectors;
  * Azure Functions with Timer Trigger.
  * Executa a cada 1 hora para gerar relatório de avaliações.
  */
-public class TimerFunction {
+public class GerarRelatorioFunction {
     
     @FunctionName("relatorioAvaliacoes")
     public void relatorioAvaliacoes(

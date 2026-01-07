@@ -1,10 +1,7 @@
 package com.classinsight.service;
 
-import com.classinsight.AvaliacaoResponseDTO;
-import com.classinsight.Urgencia;
-import com.classinsight.service.EmailSender;
-import com.classinsight.service.AzureCommunicationEmailSender;
-import com.classinsight.service.NotificationQueueClient;
+import com.classinsight.dto.AvaliacaoResponseDTO;
+import com.classinsight.model.Urgencia;
 
 /**
  * Serviço de notificação: formata mensagens a partir de `AvaliacaoResponseDTO`

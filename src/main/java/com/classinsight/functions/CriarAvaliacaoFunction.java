@@ -1,4 +1,4 @@
-package com.classinsight;
+package com.classinsight.functions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.functions.ExecutionContext;
@@ -12,13 +12,16 @@ import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.classinsight.service.AvaliacaoService;
+import com.classinsight.model.AvaliacaoRequest;
+import com.classinsight.dto.AvaliacaoResponseDTO;
+import com.classinsight.util.ValidationUtils;
 
 import java.util.Optional;
 
 /**
  * Azure Functions with HTTP Trigger.
  */
-public class Function {
+public class CriarAvaliacaoFunction {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     
     @FunctionName("avaliacao")

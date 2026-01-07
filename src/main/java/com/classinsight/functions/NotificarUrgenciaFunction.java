@@ -1,7 +1,7 @@
-package com.classinsight;
+package com.classinsight.functions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.classinsight.AvaliacaoResponseDTO;
+import com.classinsight.dto.AvaliacaoResponseDTO;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.QueueTrigger;
@@ -10,7 +10,7 @@ import com.microsoft.azure.functions.annotation.QueueTrigger;
  * Função que recebe mensagens da fila de notificações e processa notificações de urgência.
  * A notificação já foi publicada pela AvaliacaoService, esta função apenas a processa/loga.
  */
-public class NotificationFunction {
+public class NotificarUrgenciaFunction {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @FunctionName("notificarUrgencia")

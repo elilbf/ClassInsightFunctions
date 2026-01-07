@@ -1,4 +1,4 @@
-package com.classinsight;
+package com.classinsight.model;
 
 public enum Urgencia {
     CRITICO,

@@ -1,4 +1,4 @@
-package com.classinsight;
+package com.classinsight.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
