@@ -7,7 +7,7 @@
     "NOTIFICATION_QUEUE_NAME": "notificacoes-urgencia",
     "AZURE_COMMUNICATION_CONNECTION_STRING": "",
     "NOTIFICATION_FROM_EMAIL": "",
-    "ADMIN_EMAIL": "",
+    "ADMIN_EMAIL": "elileite9@gmail.com",
     "DB_URL": "jdbc:sqlserver://localhost:1433;databaseName=classinsight;encrypt=true;trustServerCertificate=true;",
     "DB_USER": "sa",
     "DB_PASSWORD": "YourPassword123!",
