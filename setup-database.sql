@@ -15,8 +15,7 @@ CREATE TABLE avaliacoes (
     descricao NVARCHAR(500) NOT NULL,
     nota DECIMAL(3,1) NOT NULL,
     data_criacao DATETIME DEFAULT GETDATE(),
-    urgencia NVARCHAR(10) NOT NULL DEFAULT 'BAIXA',
-    CHECK (nota >= 0 AND nota <= 5)
+    urgencia NVARCHAR(10) NOT NULL DEFAULT 'BAIXA'
 );
 
 -- 5. Criar índices para melhor performance
