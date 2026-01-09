@@ -9,8 +9,6 @@
     "NOTIFICATION_FROM_EMAIL": "",
     "ADMIN_EMAIL": "elileite9@gmail.com",
     "DB_URL": "jdbc:sqlserver://localhost:1433;databaseName=classinsight;encrypt=true;trustServerCertificate=true;",
-    "DB_USER": "sa",
-    "DB_PASSWORD": "YourPassword123!",
     "DB_DRIVER": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
   }
 }
