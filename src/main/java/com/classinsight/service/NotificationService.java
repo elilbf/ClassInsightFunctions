@@ -46,14 +46,22 @@ public class NotificationService {
         if (dto != null && dto.getUrgencia() != null) {
             if (dto.getUrgencia() == Urgencia.CRITICO || dto.getUrgencia() == Urgencia.ALTA) {
                 String from = System.getenv().getOrDefault("NOTIFICATION_FROM_EMAIL", System.getenv("ADMIN_EMAIL"));
-                String to = System.getenv().getOrDefault("ADMIN_EMAIL", null);
+                String toEnv = System.getenv().getOrDefault("ADMIN_EMAIL", null);
                 String subject = getTituloUrgencia(dto.getUrgencia());
-                if (emailSender != null && from != null && to != null) {
-                    boolean sent = emailSender.send(from, to, subject, message);
-                    if (sent) {
-                        System.out.println("Email sent to " + to + " for urgency " + dto.getUrgencia());
-                    } else {
-                        System.err.println("Failed to send email for urgency " + dto.getUrgencia());
+
+                if (emailSender != null && from != null && toEnv != null) {
+                    // separa os emails por ";"
+                    String[] recipients = toEnv.split(";");
+                    for (String recipient : recipients) {
+                        recipient = recipient.trim();
+                        if (!recipient.isEmpty()) {
+                            boolean sent = emailSender.send(from, recipient, subject, message);
+                            if (sent) {
+                                System.out.println("Email sent to " + recipient + " for urgency " + dto.getUrgencia());
+                            } else {
+                                System.err.println("Failed to send email to " + recipient + " for urgency " + dto.getUrgencia());
+                            }
+                        }
                     }
                 } else {
                     System.err.println("Email sender not configured or recipient missing; skipping email send.");
@@ -61,6 +69,7 @@ public class NotificationService {
             }
         }
     }
+
 
     private static String formatarMensagemNotificacao(AvaliacaoResponseDTO dto) {
         StringBuilder sb = new StringBuilder();
