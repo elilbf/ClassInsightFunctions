@@ -1,5 +1,8 @@
 package com.classinsight.config;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,7 +12,8 @@ import java.sql.SQLException;
  * Suporta Azure SQL, MySQL, PostgreSQL.
  */
 public class DatabaseManager {
-    
+    private static final Logger logger = LogManager.getLogger(DatabaseManager.class);
+
     // Variáveis de conexão (virão de environment variables)
     private static final String DB_URL = System.getenv("DB_URL");
 
@@ -33,12 +37,10 @@ public class DatabaseManager {
     public static Connection getConnection() throws SQLException {
         try {
             Connection conn = DriverManager.getConnection(DB_URL);
-            System.out.println("✅ Conexão com BD estabelecida com sucesso");
+            logger.debug("Conexão com BD estabelecida");
             return conn;
         } catch (SQLException e) {
-            System.err.println("❌ Erro ao conectar no BD:");
-            System.err.println("  URL: " + DB_URL);
-            System.err.println("  Erro: " + e.getMessage());
+            logger.error("Erro ao conectar no BD: {}", e.getMessage());
             throw e;
         }
     }
@@ -51,7 +53,7 @@ public class DatabaseManager {
         try (Connection conn = getConnection()) {
             return conn.isValid(5);
         } catch (SQLException e) {
-            System.err.println("Erro ao testar conexão: " + e.getMessage());
+            logger.error("Erro ao testar conexão: {}", e.getMessage());
             return false;
         }
     }

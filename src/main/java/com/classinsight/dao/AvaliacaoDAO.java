@@ -5,6 +5,8 @@ import com.classinsight.model.AvaliacaoRequest;
 import com.classinsight.model.AvaliacaoResponse;
 import com.classinsight.model.AvaliacaoStats;
 import com.classinsight.model.Urgencia;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,7 +23,8 @@ import java.util.List;
  * Realiza operações CRUD no banco de dados.
  */
 public class AvaliacaoDAO {
-    
+    private static final Logger logger = LogManager.getLogger(AvaliacaoDAO.class);
+
     /**
      * Insere uma nova avaliação no banco de dados.
      * @param avaliacao AvaliacaoRequest contendo descrição e nota
@@ -45,18 +48,12 @@ public class AvaliacaoDAO {
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
                 if (rs.next()) {
                     long id = rs.getLong(1);
-                    System.out.println("✅ Avaliação inserida com sucesso. ID: " + id);
+                    logger.debug("Avaliação inserida. ID: {}, Nota: {}", id, avaliacao.getNota());
                     return id;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("❌ Erro ao inserir avaliação:");
-            System.err.println("  SQL: " + sql);
-            System.err.println("  Descrição: " + avaliacao.getDescricao());
-            System.err.println("  Nota: " + avaliacao.getNota());
-            System.err.println("  Erro: " + e.getMessage());
-            System.err.println("  Cause: " + e.getCause());
-            e.printStackTrace();
+            logger.error("Erro ao inserir avaliação (nota: {}): {}", avaliacao.getNota(), e.getMessage());
         }
         return -1;
     }
@@ -88,7 +85,7 @@ public class AvaliacaoDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter avaliação: " + e.getMessage());
+            logger.error("Erro ao obter avaliação {}: {}", id, e.getMessage());
         }
         return null;
     }
@@ -117,7 +114,7 @@ public class AvaliacaoDAO {
                 ));
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter todas as avaliações: " + e.getMessage());
+            logger.error("Erro ao obter avaliações: {}", e.getMessage());
         }
         return lista;
     }
@@ -150,7 +147,7 @@ public class AvaliacaoDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter avaliações por nota mínima: " + e.getMessage());
+            logger.error("Erro ao obter avaliações com nota >= {}: {}", notaMinima, e.getMessage());
         }
         return lista;
     }
@@ -174,7 +171,7 @@ public class AvaliacaoDAO {
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Erro ao atualizar avaliação: " + e.getMessage());
+            logger.error("Erro ao atualizar avaliação {}: {}", id, e.getMessage());
         }
         return false;
     }
@@ -193,7 +190,7 @@ public class AvaliacaoDAO {
             pstmt.setLong(1, id);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Erro ao deletar avaliação: " + e.getMessage());
+            logger.error("Erro ao deletar avaliação {}: {}", id, e.getMessage());
         }
         return false;
     }
@@ -213,7 +210,7 @@ public class AvaliacaoDAO {
                 return rs.getLong("cnt");
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter total de avaliações: " + e.getMessage());
+            logger.error("Erro ao obter total de avaliações: {}", e.getMessage());
         }
         return 0;
     }
@@ -234,7 +231,7 @@ public class AvaliacaoDAO {
                 return rs.wasNull() ? 0.0 : media;
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter média de avaliações: " + e.getMessage());
+            logger.error("Erro ao obter média de avaliações: {}", e.getMessage());
         }
         return 0.0;
     }
@@ -259,7 +256,7 @@ public class AvaliacaoDAO {
                 );
             }
         } catch (SQLException e) {
-            System.err.println("Erro ao obter estatísticas: " + e.getMessage());
+            logger.error("Erro ao obter estatísticas: {}", e.getMessage());
         }
         return null;
     }

@@ -6,6 +6,8 @@ import com.microsoft.azure.functions.annotation.TimerTrigger;
 import com.classinsight.model.AvaliacaoResponse;
 import com.classinsight.model.Urgencia;
 import com.classinsight.dao.AvaliacaoDAO;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,7 +21,8 @@ import java.util.stream.Collectors;
  * Executa a cada 1 hora para gerar relatório de avaliações.
  */
 public class GerarRelatorioFunction {
-    
+    private static final Logger logger = LogManager.getLogger(GerarRelatorioFunction.class);
+
     @FunctionName("relatorioAvaliacoes")
     public void relatorioAvaliacoes(
             @TimerTrigger(
@@ -51,7 +54,6 @@ public class GerarRelatorioFunction {
             
         } catch (Exception e) {
             context.getLogger().severe("Erro ao processar relatório: " + e.getMessage());
-            e.printStackTrace(System.err);
         }
     }
     
@@ -193,7 +195,7 @@ public class GerarRelatorioFunction {
     }
     
     /**
-     * Salva o relatório no banco de dados.
+     * Salva informações do relatório no banco de dados (opcional).
      */
     private static void salvarRelatorioBD(List<AvaliacaoResponse> avaliacoes) {
         try {
@@ -202,9 +204,9 @@ public class GerarRelatorioFunction {
             
             // Aqui você poderia salvar na tabela de relatórios
             // INSERT INTO relatorios (total_avaliacoes, media_notas, data_geracao)
-            System.out.println("✅ Relatório salvo: Total=" + totalAvaliacoes + ", Média=" + mediaNotas);
+            logger.debug("Relatório gerado: Total={}, Média={}", totalAvaliacoes, mediaNotas);
         } catch (Exception e) {
-            System.err.println("⚠️ Erro ao salvar relatório no BD: " + e.getMessage());
+            logger.warn("Erro ao salvar relatório no BD: {}", e.getMessage());
         }
     }
 }
