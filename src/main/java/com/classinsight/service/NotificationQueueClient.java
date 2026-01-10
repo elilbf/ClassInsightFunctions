@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 public class NotificationQueueClient {
     private static final Logger logger = LogManager.getLogger(NotificationQueueClient.class);
-    private static final String QUEUE_NAME = System.getenv().getOrDefault("NOTIFICATION_QUEUE_NAME", "notificacoes-urgencia");
+    private static final String QUEUE_NAME = System.getenv().getOrDefault("NOTIFICATION_QUEUE_NAME", "notificacao-urgencia");
     private static final String CONNECTION_STRING = System.getenv("AZURE_STORAGE_CONNECTION_STRING");
 
     public static void enqueueNotification(String message) {

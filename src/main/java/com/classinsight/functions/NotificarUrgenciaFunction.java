@@ -15,7 +15,7 @@ public class NotificarUrgenciaFunction {
 
     @FunctionName("notificarUrgencia")
     public void run(
-            @QueueTrigger(name = "message", queueName = "notificacoes-urgencia", connection = "AzureWebJobsStorage") String message,
+            @QueueTrigger(name = "message", queueName = "notificacao-urgencia", connection = "AzureWebJobsStorage") String message,
             final ExecutionContext context) {
         context.getLogger().info("Processando notificação da fila: " + message);
         try {
