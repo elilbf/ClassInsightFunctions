@@ -198,35 +198,43 @@ public class GerarRelatorioFunction {
             String connectionString = System.getenv("AZURE_COMMUNICATION_CONNECTION_STRING");
             String fromEmail = System.getenv("NOTIFICATION_FROM_EMAIL");
             String adminEmail = System.getenv("ADMIN_EMAIL");
-            
+
             if (connectionString == null || fromEmail == null || adminEmail == null) {
                 context.getLogger().warning("Configurações de email não encontradas. Relatório será apenas logado.");
                 context.getLogger().info("\n" + relatorio);
                 return;
             }
-            
+
             // Criar o serviço de email
             EmailSender emailSender = new AzureCommunicationEmailSender(connectionString);
-            
+
             // Preparar assunto e corpo do email
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
             String subject = String.format("Relatório de Avaliações - %s", timestamp);
             String emailBody = "Relatório gerado em " + timestamp + "\n\n" + relatorio;
-            
-            // Enviar email diretamente
-            boolean enviado = emailSender.send(fromEmail, adminEmail, subject, emailBody);
-            
-            if (enviado) {
-                context.getLogger().info("Relatório enviado por email para: " + adminEmail);
-            } else {
-                context.getLogger().warning("Falha ao enviar relatório por email após tentativas.");
+
+            // Separar os emails por ";"
+            String[] destinatarios = adminEmail.split(";");
+            for (String destinatario : destinatarios) {
+                destinatario = destinatario.trim();
+                if (!destinatario.isEmpty()) {
+                    boolean enviado = emailSender.send(fromEmail, destinatario, subject, emailBody);
+
+                    if (enviado) {
+                        context.getLogger().info("Relatório enviado por email para: " + destinatario);
+                    } else {
+                        context.getLogger().warning("Falha ao enviar relatório por email para: " + destinatario);
+                    }
+                }
             }
-            
+
             // Aqui você poderia salvar na tabela de relatórios
             // INSERT INTO relatorios (total_avaliacoes, media_notas, data_geracao)
             logger.debug("Relatório gerado com sucesso");
+
         } catch (Exception e) {
             logger.warn("Erro ao salvar relatório no BD: {}", e.getMessage());
         }
     }
+
 }
