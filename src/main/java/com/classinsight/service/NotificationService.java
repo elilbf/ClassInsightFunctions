@@ -138,14 +138,13 @@ public class NotificationService {
             boolean enviado = emailSender.send(fromEmail, adminEmail, subject, emailBody);
             
             if (enviado) {
-                logger.info("Notificação publicada:");
-                logger.info(message);
+                logger.info("Alerta enviado com sucesso para: {}", adminEmail);
             } else {
-                logger.info("Falha ao notificação:");
+                logger.error("Falha ao enviar alerta");
             }
             
         } catch (Exception e) {
-            logger.info("Falha na notificação:"  + e.getMessage());
+            logger.error("Falha na notificação: {}", e.getMessage());
             e.printStackTrace();
         }
     }

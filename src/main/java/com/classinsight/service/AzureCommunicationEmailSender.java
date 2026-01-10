@@ -72,6 +72,9 @@ public class AzureCommunicationEmailSender implements EmailSender {
         try {
             Object message = emailMessageClass.getConstructor().newInstance();
             
+            // Configurar o remetente
+            tryInvokeMethod(emailMessageClass, message, "setSenderAddress", String.class, from);
+            
             // Tentar configurar o destinatário
             try {
                 Class<?> emailAddressClass = Class.forName("com.azure.communication.email.models.EmailAddress");

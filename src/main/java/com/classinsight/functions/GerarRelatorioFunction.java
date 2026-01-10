@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * Azure Functions with Timer Trigger.
- * Executa a cada 5 minutos para gerar e enviar relatório de avaliações por email.
+ * Executa a cada 2 minutos para gerar e enviar relatório de avaliações por email.
  */
 public class GerarRelatorioFunction {
     private static final Logger logger = LogManager.getLogger(GerarRelatorioFunction.class);
@@ -27,7 +27,7 @@ public class GerarRelatorioFunction {
     public void relatorioAvaliacoes(
             @TimerTrigger(
                 name = "processarTimer",
-                schedule = "0 */5 * * * *") // A cada 5 minutos
+                schedule = "0 */2 * * * *") // A cada 2 minutos
             String timerInfo,
             final ExecutionContext context) {
         context.getLogger().info("Processamento agendado de avaliações iniciado: " + timerInfo);
@@ -224,7 +224,7 @@ public class GerarRelatorioFunction {
             
             // Aqui você poderia salvar na tabela de relatórios
             // INSERT INTO relatorios (total_avaliacoes, media_notas, data_geracao)
-            logger.debug("Relatório gerado: Total={}, Média={}", totalAvaliacoes, mediaNotas);
+            logger.debug("Relatório gerado com sucesso");
         } catch (Exception e) {
             logger.warn("Erro ao salvar relatório no BD: {}", e.getMessage());
         }
