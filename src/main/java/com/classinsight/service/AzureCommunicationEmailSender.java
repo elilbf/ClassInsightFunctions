@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Email sender using Azure Communication Services Email (v1.1.0).
- * This implementation uses getDeclaredMethod to access send method with proper reflection.
+ * Simplified reflection implementation with better error handling.
  */
 public class AzureCommunicationEmailSender implements EmailSender {
     private static final Logger logger = LogManager.getLogger(AzureCommunicationEmailSender.class);
@@ -20,107 +20,119 @@ public class AzureCommunicationEmailSender implements EmailSender {
 
     @Override
     public boolean send(String from, String to, String subject, String body) {
-        logger.info("Enviando email para: {}, assunto: {}", to, subject);
-
+        
         try {
-            boolean result = sendViaReflection(from, to, subject, body);
-            if (result) {
-                logger.info("Email enviado com sucesso para: {}", to);
-            }
-            return result;
-        } catch (Exception e) {
-            logger.error("Falha ao enviar email para {}: {}", to, e.getMessage());
-
-            // Mostrar a causa raiz se for InvocationTargetException
-            if (e instanceof java.lang.reflect.InvocationTargetException) {
-                Throwable cause = e.getCause();
-                if (cause != null) {
-                    logger.debug("Causa raiz:", cause);
-                }
+            // Usar reflexão para chamar beginSend
+            Class<?> emailMessageClass = Class.forName("com.azure.communication.email.models.EmailMessage");
+            Object emailMessage = buildSimpleEmailMessage(emailMessageClass, from, to, subject, body);
+            
+            if (emailMessage == null) {
+                System.err.println("Azure SDK: Failed to build EmailMessage");
+                return false;
             }
             
-            return true; // Fallback sempre retorna true
-        }
-    }
-
-    private boolean sendViaReflection(String from, String to, String subject, String body) throws Exception {
-        Class<?> emailMessageClass = Class.forName("com.azure.communication.email.models.EmailMessage");
-        Object emailMessage = buildEmailMessage(emailMessageClass, from, to, subject, body);
-
-        if (emailMessage == null) {
-            logger.error("Falha ao construir EmailMessage");
-            return false;
-        }
-
-        try {
             java.lang.reflect.Method beginSendMethod = EmailClient.class.getDeclaredMethod("beginSend", emailMessageClass);
             Object pollableResult = beginSendMethod.invoke(client, emailMessage);
-
-            // Para beginSend, precisamos esperar o resultado
+            
+            // Esperar pela conclusão sem bloquear muito tempo
             try {
                 java.lang.reflect.Method waitForCompletionMethod = pollableResult.getClass().getDeclaredMethod("waitForCompletion");
                 waitForCompletionMethod.setAccessible(true);
                 Object completionResult = waitForCompletionMethod.invoke(pollableResult);
-
-                if (completionResult != null) {
-                    try {
-                        java.lang.reflect.Method getValueMethod = completionResult.getClass().getMethod("getValue");
-                        Object emailResult = getValueMethod.invoke(completionResult);
-                        return emailResult != null;
-                    } catch (Exception getValueEx) {
-                        return true;
-                    }
-                }
-                return false;
-            } catch (Exception completionEx) {
-                logger.warn("Não foi possível aguardar conclusão, mas email foi enviado: {}", completionEx.getMessage());
                 return true;
+            } catch (Exception completionEx) {
+                return true; // Considerar sucesso pois beginSend funcionou
             }
-        } catch (NoSuchMethodException e1) {
-            logger.error("Método beginSend não encontrado - incompatibilidade de versão do Azure SDK");
+            
+        } catch (Exception e) {
+            System.err.println("Azure SDK: Send failed (" + e.getClass().getSimpleName() + "): " + e.getMessage());
+            
+            // Análise detalhada do erro
+            String errorMessage = e.getMessage();
+            if (errorMessage != null) {
+                if (errorMessage.contains("TooManyRequests") || errorMessage.contains("Status code 429")) {
+                    System.err.println("Rate limiting detected");
+                } else if (errorMessage.contains("Unauthorized") || errorMessage.contains("401")) {
+                    System.err.println("Authentication issue - check connection string");
+                } else if (errorMessage.contains("Forbidden") || errorMessage.contains("403")) {
+                    System.err.println("Permission issue - check sender domain");
+                }
+            }
+            
+            // Mostrar causa raiz
+            if (e instanceof java.lang.reflect.InvocationTargetException && e.getCause() != null) {
+                System.err.println("Root cause: " + e.getCause().getMessage());
+            }
+            
             return false;
         }
     }
 
-    private Object buildEmailMessage(Class<?> emailMessageClass, String from, String to, String subject, String body) throws Exception {
-        Object message = emailMessageClass.getConstructor().newInstance();
-
-        // Tentar cada método e ver qual funciona
-        tryInvokeMethod(emailMessageClass, message, "setSender", String.class, from);
-        tryInvokeMethod(emailMessageClass, message, "setSenderAddress", String.class, from);
-        tryInvokeMethod(emailMessageClass, message, "setFrom", String.class, from);
-        tryInvokeMethod(emailMessageClass, message, "setSubject", String.class, subject);
-        tryInvokeMethod(emailMessageClass, message, "setPlainTextContent", String.class, body);
-        tryInvokeMethod(emailMessageClass, message, "setPlainText", String.class, body);
-        tryInvokeMethod(emailMessageClass, message, "setBodyPlainText", String.class, body);
-        tryInvokeMethod(emailMessageClass, message, "setBodyHtml", String.class, body);
-        tryInvokeMethod(emailMessageClass, message, "addTo", String.class, to);
-
-        // Criar EmailAddress objects para setToRecipients
+    private Object buildSimpleEmailMessage(Class<?> emailMessageClass, String from, String to, String subject, String body) throws Exception {
         try {
-            Class<?> emailAddressClass = Class.forName("com.azure.communication.email.models.EmailAddress");
-            Object emailAddress = emailAddressClass.getConstructor(String.class).newInstance(to);
+            Object message = emailMessageClass.getConstructor().newInstance();
             
-            java.util.List<Object> emailAddresses = java.util.Collections.singletonList(emailAddress);
-            java.lang.reflect.Method setToRecipientsMethod = emailMessageClass.getMethod("setToRecipients", java.util.List.class);
-            setToRecipientsMethod.invoke(message, emailAddresses);
-        } catch (Exception e) {
-            // Try alternative method
+            // Tentar configurar o destinatário
             try {
-                java.lang.reflect.Method setToMethod = emailMessageClass.getMethod("setTo", java.util.List.class);
-                setToMethod.invoke(message, java.util.Collections.singletonList(to));
-            } catch (NoSuchMethodException ex) {
-                logger.debug("Não foi possível definir destinatários usando métodos padrão");
+                Class<?> emailAddressClass = Class.forName("com.azure.communication.email.models.EmailAddress");
+                Object toAddress = emailAddressClass.getConstructor(String.class).newInstance(to);
+                
+                // Criar lista de destinatários
+                Class<?> listClass = Class.forName("java.util.ArrayList");
+                Object toList = listClass.getConstructor().newInstance();
+                
+                // Adicionar destinatário à lista
+                java.lang.reflect.Method addMethod = listClass.getMethod("add", Object.class);
+                addMethod.invoke(toList, toAddress);
+                
+                // Tentar diferentes métodos para configurar destinatários
+                boolean recipientsSet = false;
+                
+                // Método 1: setToRecipients com lista
+                recipientsSet = tryInvokeMethod(emailMessageClass, message, "setToRecipients", toList.getClass(), toList);
+                
+                // Método 2: setToRecipients com varargs
+                if (!recipientsSet) {
+                    try {
+                        java.lang.reflect.Method method = emailMessageClass.getDeclaredMethod("setToRecipients", emailAddressClass.arrayType());
+                        Object addressArray = java.lang.reflect.Array.newInstance(emailAddressClass, 1);
+                        java.lang.reflect.Array.set(addressArray, 0, toAddress);
+                        method.invoke(message, addressArray);
+                        recipientsSet = true;
+                    } catch (Exception e) {
+                        // Ignorar e tentar próximo método
+                    }
+                }
+                
+                // Método 3: setTo com endereço único
+                if (!recipientsSet) {
+                    recipientsSet = tryInvokeMethod(emailMessageClass, message, "setTo", emailAddressClass, toAddress);
+                }
+                
+                if (recipientsSet) {
+                    System.out.println("Recipients set successfully");
+                } else {
+                    System.out.println("Could not set recipients with any method");
+                }
+            } catch (Exception e) {
+                System.out.println("Error setting recipients: " + e.getMessage());
             }
+            
+            // Configurar assunto e corpo
+            tryInvokeMethod(emailMessageClass, message, "setSubject", String.class, subject);
+            tryInvokeMethod(emailMessageClass, message, "setBodyPlainText", String.class, body);
+            
+            return message;
+        } catch (Exception e) {
+            System.err.println("Failed to build EmailMessage: " + e.getMessage());
+            return null;
         }
-        
-        return message;
     }
-
-    private boolean tryInvokeMethod(Class<?> cls, Object obj, String methodName, Class<?> paramType, Object value) {
+    
+    private boolean tryInvokeMethod(Class<?> targetClass, Object target, String methodName, Class<?> paramType, Object paramValue) {
         try {
-            java.lang.reflect.Method method = cls.getMethod(methodName, paramType);
-            method.invoke(obj, value);
+            java.lang.reflect.Method method = targetClass.getDeclaredMethod(methodName, paramType);
+            method.invoke(target, paramValue);
             return true;
         } catch (Exception e) {
             return false;
