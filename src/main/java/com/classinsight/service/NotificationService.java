@@ -117,36 +117,44 @@ public class NotificationService {
             System.err.println("Email sender not available - cannot send alert");
             return;
         }
-        
+
         try {
             // Obter configurações do email
             String fromEmail = System.getenv("NOTIFICATION_FROM_EMAIL");
             String adminEmail = System.getenv("ADMIN_EMAIL");
-            
+
             if (fromEmail == null || adminEmail == null) {
                 System.err.println("Email configuration missing - cannot send alert");
                 return;
             }
-            
+
             // Gerar assunto baseado na urgência
-            String subject = "Alerta ClassInsight - " + (dto.getUrgencia() != null ? dto.getUrgencia().name() : "Não classificada");
-            
+            String subject = "Alerta ClassInsight - " +
+                    (dto.getUrgencia() != null ? dto.getUrgencia().name() : "Não classificada");
+
             // Usar o método gerarCorpoEmailSimples para formatar o corpo do email
             String emailBody = gerarCorpoEmailSimples(dto);
-            
-            // Enviar email
-            boolean enviado = emailSender.send(fromEmail, adminEmail, subject, emailBody);
-            
-            if (enviado) {
-                logger.info("Alerta enviado com sucesso para: {}", adminEmail);
-            } else {
-                logger.error("Falha ao enviar alerta");
+
+            // Separar os emails por ";"
+            String[] destinatarios = adminEmail.split(";");
+            for (String destinatario : destinatarios) {
+                destinatario = destinatario.trim(); // remover espaços extras
+                if (!destinatario.isEmpty()) {
+                    boolean enviado = emailSender.send(fromEmail, destinatario, subject, emailBody);
+
+                    if (enviado) {
+                        logger.info("Alerta enviado com sucesso para: {}", destinatario);
+                    } else {
+                        logger.error("Falha ao enviar alerta para: {}", destinatario);
+                    }
+                }
             }
-            
+
         } catch (Exception e) {
             logger.error("Falha na notificação: {}", e.getMessage());
             e.printStackTrace();
         }
     }
+
 
 }
