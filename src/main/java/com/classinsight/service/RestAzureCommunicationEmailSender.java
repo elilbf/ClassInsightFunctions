@@ -1,6 +1,9 @@
 package com.classinsight.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -16,7 +19,8 @@ import java.util.Map;
  * Reuses existing project patterns: Jackson ObjectMapper, System.getenv, error handling.
  */
 public class RestAzureCommunicationEmailSender implements EmailSender {
-    
+    private static final Logger logger = LogManager.getLogger(RestAzureCommunicationEmailSender.class);
+
     private final String endpoint;
     private final String accessKey;
     private final HttpClient httpClient;
@@ -38,9 +42,7 @@ public class RestAzureCommunicationEmailSender implements EmailSender {
             .connectTimeout(Duration.ofSeconds(30))
             .build();
             
-        System.out.println("✅ RestAzureCommunicationEmailSender initialized");
-        System.out.println("   Endpoint: " + endpoint);
-        System.out.println("   AccessKey: " + (accessKey != null ? accessKey.substring(0, Math.min(10, accessKey.length())) + "..." : "NULL"));
+        logger.info("RestAzureCommunicationEmailSender inicializado com endpoint: {}", endpoint);
     }
     
     @Override
@@ -61,24 +63,20 @@ public class RestAzureCommunicationEmailSender implements EmailSender {
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
                 
-                System.out.println("📧 Sending email attempt " + attempt + "/" + MAX_RETRIES + " to: " + to);
-                System.out.println("   Endpoint: " + emailEndpoint);
-                System.out.println("   Payload: " + jsonPayload);
-                System.out.println("   Header Ocp-Apim-Subscription-Key: " + accessKey.substring(0, Math.min(10, accessKey.length())) + "...");
-                
+                logger.info("Enviando email para: {} (tentativa {}/{})", to, attempt, MAX_RETRIES);
+
                 HttpResponse<String> response = httpClient.send(request, 
                     HttpResponse.BodyHandlers.ofString());
                 
                 if (response.statusCode() == 202) {
-                    System.out.println("✅ Email sent successfully via REST API. Status: " + response.statusCode());
+                    logger.info("Email enviado com sucesso para: {}", to);
                     return true;
                 } else {
-                    System.err.println("❌ Email send failed. Status: " + response.statusCode() + 
-                                     ", Body: " + response.body());
+                    logger.error("Falha ao enviar email. Status: {}, Body: {}", response.statusCode(), response.body());
                 }
                 
             } catch (Exception e) {
-                System.err.println("❌ Error on attempt " + attempt + ": " + e.getMessage());
+                logger.error("Erro na tentativa {}: {}", attempt, e.getMessage());
             }
             
             if (attempt < MAX_RETRIES) {
@@ -91,7 +89,7 @@ public class RestAzureCommunicationEmailSender implements EmailSender {
             }
         }
         
-        System.err.println("❌ Failed to send email after " + MAX_RETRIES + " attempts");
+        logger.error("Falha ao enviar email para {} após {} tentativas", to, MAX_RETRIES);
         return false;
     }
     

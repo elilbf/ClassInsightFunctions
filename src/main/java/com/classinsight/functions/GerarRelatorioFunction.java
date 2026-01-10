@@ -5,6 +5,8 @@ import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.TimerTrigger;
 import com.classinsight.model.AvaliacaoResponse;
 import com.classinsight.dao.AvaliacaoDAO;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.classinsight.service.EmailSender;
 import com.classinsight.service.AzureCommunicationEmailSender;
 
@@ -19,7 +21,8 @@ import java.util.stream.Collectors;
  * Executa a cada 5 minutos para gerar e enviar relatório de avaliações por email.
  */
 public class GerarRelatorioFunction {
-    
+    private static final Logger logger = LogManager.getLogger(GerarRelatorioFunction.class);
+
     @FunctionName("relatorioAvaliacoes")
     public void relatorioAvaliacoes(
             @TimerTrigger(
@@ -48,7 +51,6 @@ public class GerarRelatorioFunction {
             
         } catch (Exception e) {
             context.getLogger().severe("Erro ao processar relatório: " + e.getMessage());
-            e.printStackTrace(System.err);
         }
     }
     
@@ -220,9 +222,11 @@ public class GerarRelatorioFunction {
                 context.getLogger().warning("Falha ao enviar relatório por email após tentativas.");
             }
             
+            // Aqui você poderia salvar na tabela de relatórios
+            // INSERT INTO relatorios (total_avaliacoes, media_notas, data_geracao)
+            logger.debug("Relatório gerado: Total={}, Média={}", totalAvaliacoes, mediaNotas);
         } catch (Exception e) {
-            context.getLogger().severe("Erro ao enviar relatório por email: " + e.getMessage());
-            context.getLogger().info("\n" + relatorio); // Fallback: mostrar no log
+            logger.warn("Erro ao salvar relatório no BD: {}", e.getMessage());
         }
     }
 }

@@ -26,7 +26,7 @@ public class NotificarUrgenciaFunction {
             context.getLogger().info("   Descrição: " + dto.getDescricao());
         } catch (Exception e) {
             context.getLogger().severe("Erro ao processar mensagem de notificação: " + e.getMessage());
-            throw new RuntimeException("Failed to process notification message", e);
+            throw new RuntimeException("Falha ao processar mensagem de notificação", e);
         }
     }
 }

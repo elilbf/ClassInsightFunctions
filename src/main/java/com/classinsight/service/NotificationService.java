@@ -2,13 +2,18 @@ package com.classinsight.service;
 
 import com.classinsight.dto.AvaliacaoResponseDTO;
 import com.classinsight.model.Urgencia;
+import lombok.Setter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Serviço de notificação: formata mensagens a partir de `AvaliacaoResponseDTO`
  * e publica/processa notificações (integrado com Azure Queue).
  */
 public class NotificationService {
+    private static final Logger logger = LogManager.getLogger(NotificationService.class);
 
+    @Setter
     private static EmailSender emailSender;
 
     static {
@@ -17,9 +22,12 @@ public class NotificationService {
         if (conn != null && !conn.isBlank()) {
             try {
                 emailSender = new AzureCommunicationEmailSender(conn);
+                logger.info("AzureCommunicationEmailSender inicializado com sucesso");
             } catch (Exception e) {
-                System.err.println("Failed to init AzureCommunicationEmailSender: " + e.getMessage());
+                logger.error("Falha ao inicializar AzureCommunicationEmailSender: {}", e.getMessage());
             }
+        } else {
+            logger.warn("AZURE_COMMUNICATION_CONNECTION_STRING não configurada - envio de email desabilitado");
         }
     }
 
@@ -38,7 +46,7 @@ public class NotificationService {
         try {
             NotificationQueueClient.enqueueNotification(dto.toString());
         } catch (Exception e) {
-            System.err.println("Failed to enqueue notification: " + e.getMessage());
+            logger.error("Falha ao enfileirar notificação: {}", e.getMessage());
         }
 
         // If urgency is CRITICO or ALTA, attempt to send email immediately
@@ -47,7 +55,6 @@ public class NotificationService {
             enviarAlertaProfissional(dto);
         }
     }
-
 
 
     /**
@@ -131,13 +138,14 @@ public class NotificationService {
             boolean enviado = emailSender.send(fromEmail, adminEmail, subject, emailBody);
             
             if (enviado) {
-                System.out.println("Alert email sent successfully to: " + adminEmail);
+                logger.info("Notificação publicada:");
+                logger.info(message);
             } else {
-                System.err.println("Failed to send alert email");
+                logger.info("Falha ao notificação:");
             }
             
         } catch (Exception e) {
-            System.err.println("Error sending alert email: " + e.getMessage());
+            logger.info("Falha na notificação:"  + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -2,28 +2,24 @@ package com.classinsight.service;
 
 import com.azure.communication.email.EmailClient;
 import com.azure.communication.email.EmailClientBuilder;
-import java.util.logging.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Email sender using Azure Communication Services Email (v1.1.0).
  * Simplified reflection implementation with better error handling.
  */
 public class AzureCommunicationEmailSender implements EmailSender {
-    private static final Logger LOGGER = Logger.getLogger(AzureCommunicationEmailSender.class.getName());
+    private static final Logger logger = LogManager.getLogger(AzureCommunicationEmailSender.class);
     private final EmailClient client;
 
     public AzureCommunicationEmailSender(String connectionString) {
-        System.out.println("   ConnectionString: " + connectionString.substring(0, Math.min(50, connectionString.length())) + "...");
         this.client = new EmailClientBuilder().connectionString(connectionString).buildClient();
-        System.out.println("AzureCommunicationEmailSender initialized successfully");
+        logger.info("AzureCommunicationEmailSender inicializado");
     }
 
     @Override
     public boolean send(String from, String to, String subject, String body) {
-        System.out.println("Azure SDK: Attempting to send email");
-        System.out.println("   From: " + from);
-        System.out.println("   To: " + to);
-        System.out.println("   Subject: " + subject);
         
         try {
             // Usar reflexão para chamar beginSend
@@ -75,9 +71,6 @@ public class AzureCommunicationEmailSender implements EmailSender {
     private Object buildSimpleEmailMessage(Class<?> emailMessageClass, String from, String to, String subject, String body) throws Exception {
         try {
             Object message = emailMessageClass.getConstructor().newInstance();
-            
-            // Tentar configurar o remetente
-            tryInvokeMethod(emailMessageClass, message, "setSenderAddress", String.class, from);
             
             // Tentar configurar o destinatário
             try {
