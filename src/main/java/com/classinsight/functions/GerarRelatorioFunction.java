@@ -4,19 +4,19 @@ import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.TimerTrigger;
 import com.classinsight.model.AvaliacaoResponse;
-import com.classinsight.model.Urgencia;
 import com.classinsight.dao.AvaliacaoDAO;
+import com.classinsight.service.EmailSender;
+import com.classinsight.service.AzureCommunicationEmailSender;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.stream.Collectors;
 
 /**
  * Azure Functions with Timer Trigger.
- * Executa a cada 1 hora para gerar relatório de avaliações.
+ * Executa a cada 5 minutos para gerar e enviar relatório de avaliações por email.
  */
 public class GerarRelatorioFunction {
     
@@ -24,7 +24,7 @@ public class GerarRelatorioFunction {
     public void relatorioAvaliacoes(
             @TimerTrigger(
                 name = "processarTimer",
-                schedule = "0 0 * * * *") // A cada 1 hora (no início de cada hora)
+                schedule = "0 */5 * * * *") // A cada 5 minutos
             String timerInfo,
             final ExecutionContext context) {
         context.getLogger().info("Processamento agendado de avaliações iniciado: " + timerInfo);
@@ -41,13 +41,10 @@ public class GerarRelatorioFunction {
             // Gerar relatório
             String relatorio = gerarRelatorio(avaliacoes);
             
-            // Exibir relatório nos logs
-            context.getLogger().info("\n" + relatorio);
+            // Enviar relatório por email
+            enviarRelatorioPorEmail(relatorio, context);
             
-            // Salvar relatório no banco de dados (opcional)
-            salvarRelatorioBD(avaliacoes);
-            
-            context.getLogger().info("Relatório processado com sucesso");
+            context.getLogger().info("Relatório processado e enviado com sucesso");
             
         } catch (Exception e) {
             context.getLogger().severe("Erro ao processar relatório: " + e.getMessage());
@@ -56,62 +53,94 @@ public class GerarRelatorioFunction {
     }
     
     /**
-     * Gera relatório em formato texto conforme especificado.
+     * Gera relatório analítico profissional com classificação por faixas de urgência.
      */
     private static String gerarRelatorio(List<AvaliacaoResponse> avaliacoes) {
         StringBuilder sb = new StringBuilder();
         
         // Cabeçalho
-        sb.append("╔════════════════════════════════════════════════════════════════╗\n");
-        sb.append("║              RELATÓRIO DE AVALIAÇÕES                           ║\n");
-        sb.append("╚════════════════════════════════════════════════════════════════╝\n\n");
+        sb.append("RELATÓRIO DE AVALIAÇÕES DE DESEMPENHO\n");
+        sb.append("========================================\n\n");
         
-        // Data de envio
-        String dataEnvio = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-        sb.append("📅 Data de Envio: ").append(dataEnvio).append("\n\n");
+        // Data de geração no formato DD/MM/YYYY
+        String dataGeracao = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        sb.append("Data de Geração: ").append(dataGeracao).append("\n\n");
         
-        // Seção 1: Descrição das avaliações
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        sb.append("📋 DESCRIÇÃO DAS AVALIAÇÕES\n");
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        for (AvaliacaoResponse av : avaliacoes) {
-            sb.append(String.format("• %s (Nota: %.1f)\n", av.getDescricao(), av.getNota()));
-        }
+        // Resumo
+        sb.append("RESUMO\n");
+        sb.append("----------------\n");
+        sb.append(String.format("Total de Avaliações Analisadas: %d\n", avaliacoes.size()));
+        sb.append(String.format("Média Geral de Desempenho: %.2f\n", calcularMediaNotas(avaliacoes)));
         sb.append("\n");
         
-        // Seção 2: Quantidade de avaliações por dia
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        sb.append("📊 QUANTIDADE DE AVALIAÇÕES POR DIA\n");
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        Map<String, Long> avaliacoesPorDia = agruparPorDia(avaliacoes);
-        if (avaliacoesPorDia.isEmpty()) {
-            sb.append("Nenhuma avaliação encontrada\n");
+        // Análise por classificação de notas (faixas de urgência)
+        sb.append("ANÁLISE POR CLASSIFICAÇÃO DE DESEMPENHO\n");
+        sb.append("---------------------------------------\n");
+        
+        if (avaliacoes.isEmpty()) {
+            sb.append("Nenhuma avaliação registrada no período de análise.\n");
         } else {
-            avaliacoesPorDia.forEach((dia, quantidade) -> {
-                sb.append(String.format("  %s: %d avaliação(ções)\n", dia, quantidade));
-            });
+            // Classificar em faixas
+            long baixa = contarAvaliacoesPorFaixa(avaliacoes, 7.0, 10.0);
+            long media = contarAvaliacoesPorFaixa(avaliacoes, 5.0, 6.9);
+            long alta = contarAvaliacoesPorFaixa(avaliacoes, 2.0, 4.9);
+            long critica = contarAvaliacoesPorFaixa(avaliacoes, 0.0, 1.9);
+            
+            double percentualBaixa = (baixa * 100.0) / avaliacoes.size();
+            double percentualMedia = (media * 100.0) / avaliacoes.size();
+            double percentualAlta = (alta * 100.0) / avaliacoes.size();
+            double percentualCritica = (critica * 100.0) / avaliacoes.size();
+            
+            sb.append(String.format("Urgência Baixa (7,0 - 10,0): %d avaliações (%.2f%%)\n", baixa, percentualBaixa));
+            sb.append(String.format("Urgência Média (5,0 - 6,9): %d avaliações (%.2f%%)\n", media, percentualMedia));
+            sb.append(String.format("Urgência Alta (2,0 - 4,9): %d avaliações (%.2f%%)\n", alta, percentualAlta));
+            sb.append(String.format("Urgência Crítica (0,0 - 1,9): %d avaliações (%.2f%%)\n", critica, percentualCritica));
         }
         sb.append("\n");
         
-        // Seção 3: Quantidade de avaliações por urgência
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        sb.append("⚠️ QUANTIDADE DE AVALIAÇÕES POR URGÊNCIA\n");
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        Map<Urgencia, Long> avaliacoesPorUrgencia = agruparPorUrgencia(avaliacoes);
-        for (Urgencia urgencia : Urgencia.values()) {
-            long quantidade = avaliacoesPorUrgencia.getOrDefault(urgencia, 0L);
-            String emoji = getEmojiUrgencia(urgencia);
-            sb.append(String.format("  %s %s: %d avaliação(ções)\n", emoji, urgencia.name(), quantidade));
+        // Estatísticas detalhadas
+        if (!avaliacoes.isEmpty()) {
+            sb.append("INDICADORES\n");
+            sb.append("-------------------------\n");
+            double mediaGeral = calcularMediaNotas(avaliacoes);
+            double maxNota = avaliacoes.stream().mapToDouble(AvaliacaoResponse::getNota).max().orElse(0.0);
+            double minNota = avaliacoes.stream().mapToDouble(AvaliacaoResponse::getNota).min().orElse(0.0);
+            
+            sb.append(String.format("Média de Avaliações: %.2f\n", mediaGeral));
+            sb.append(String.format("Avaliação com nota Máxima: %.2f\n", maxNota));
+            sb.append(String.format("Avaliação com nota Mínima: %.2f\n", minNota));
+            sb.append("\n");
+            
+            // Análise por período
+            sb.append("DISTRIBUIÇÃO POR DIA\n");
+            sb.append("---------------------\n");
+            Map<String, Long> avaliacoesPorDia = agruparPorDia(avaliacoes);
+            if (avaliacoesPorDia.isEmpty()) {
+                sb.append("Nenhuma avaliação registrada por data.\n");
+            } else {
+                avaliacoesPorDia.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByKey().reversed())
+                    .forEach(entry -> {
+                        sb.append(String.format("%s: %d avaliação(ões)\n", entry.getKey(), entry.getValue()));
+                    });
+            }
         }
-        sb.append("\n");
         
         // Rodapé
-        sb.append("═══════════════════════════════════════════════════════════════\n");
-        sb.append(String.format("Total de Avaliações: %d\n", avaliacoes.size()));
-        sb.append(String.format("Nota Média: %.2f\n", calcularMediaNotas(avaliacoes)));
-        sb.append("═══════════════════════════════════════════════════════════════\n");
+        sb.append("\n----------------------------------------\n");
+        sb.append("Documento gerado automaticamente pelo ClassInsight\n");
+        sb.append("----------------------------------------\n");
         
         return sb.toString();
+    }
+    
+    /**
+     * Conta avaliações dentro de uma faixa de notas específica.
+     */
+    private static long contarAvaliacoesPorFaixa(List<AvaliacaoResponse> avaliacoes, double notaMinima, double notaMaxima) {
+        return avaliacoes.stream()
+            .filter(av -> av.getNota() >= notaMinima && av.getNota() <= notaMaxima)
+            .count();
     }
     
     /**
@@ -124,23 +153,7 @@ public class GerarRelatorioFunction {
                 Collectors.counting()
             ));
     }
-    
-    /**
-     * Agrupa avaliações por urgência (baseada na nota).
-     */
-    private static Map<Urgencia, Long> agruparPorUrgencia(List<AvaliacaoResponse> avaliacoes) {
-        Map<Urgencia, Long> mapa = new HashMap<>();
-        for (Urgencia u : Urgencia.values()) {
-            mapa.put(u, 0L);
-        }
-        
-        for (AvaliacaoResponse av : avaliacoes) {
-            Urgencia urgencia = Urgencia.fromNota(av.getNota());
-            mapa.put(urgencia, mapa.get(urgencia) + 1);
-        }
-        
-        return mapa;
-    }
+
     
     /**
      * Extrai a data (dd/MM/yyyy) do timestamp.
@@ -175,36 +188,41 @@ public class GerarRelatorioFunction {
     }
     
     /**
-     * Retorna emoji baseado na urgência.
+     * Envia o relatório por email usando Azure Communication Services com retry.
      */
-    private static String getEmojiUrgencia(Urgencia urgencia) {
-        switch (urgencia) {
-            case CRITICO:
-                return "🔴";
-            case ALTA:
-                return "🟠";
-            case MEDIA:
-                return "🟡";
-            case BAIXA:
-                return "🟢";
-            default:
-                return "⚪";
-        }
-    }
-    
-    /**
-     * Salva o relatório no banco de dados.
-     */
-    private static void salvarRelatorioBD(List<AvaliacaoResponse> avaliacoes) {
+    private void enviarRelatorioPorEmail(String relatorio, ExecutionContext context) {
         try {
-            int totalAvaliacoes = avaliacoes.size();
-            double mediaNotas = calcularMediaNotas(avaliacoes);
+            // Obter configurações do email
+            String connectionString = System.getenv("AZURE_COMMUNICATION_CONNECTION_STRING");
+            String fromEmail = System.getenv("NOTIFICATION_FROM_EMAIL");
+            String adminEmail = System.getenv("ADMIN_EMAIL");
             
-            // Aqui você poderia salvar na tabela de relatórios
-            // INSERT INTO relatorios (total_avaliacoes, media_notas, data_geracao)
-            System.out.println("✅ Relatório salvo: Total=" + totalAvaliacoes + ", Média=" + mediaNotas);
+            if (connectionString == null || fromEmail == null || adminEmail == null) {
+                context.getLogger().warning("Configurações de email não encontradas. Relatório será apenas logado.");
+                context.getLogger().info("\n" + relatorio);
+                return;
+            }
+            
+            // Criar o serviço de email
+            EmailSender emailSender = new AzureCommunicationEmailSender(connectionString);
+            
+            // Preparar assunto e corpo do email
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            String subject = String.format("Relatório de Avaliações - %s", timestamp);
+            String emailBody = "Relatório gerado em " + timestamp + "\n\n" + relatorio;
+            
+            // Enviar email diretamente
+            boolean enviado = emailSender.send(fromEmail, adminEmail, subject, emailBody);
+            
+            if (enviado) {
+                context.getLogger().info("Relatório enviado por email para: " + adminEmail);
+            } else {
+                context.getLogger().warning("Falha ao enviar relatório por email após tentativas.");
+            }
+            
         } catch (Exception e) {
-            System.err.println("⚠️ Erro ao salvar relatório no BD: " + e.getMessage());
+            context.getLogger().severe("Erro ao enviar relatório por email: " + e.getMessage());
+            context.getLogger().info("\n" + relatorio); // Fallback: mostrar no log
         }
     }
 }
