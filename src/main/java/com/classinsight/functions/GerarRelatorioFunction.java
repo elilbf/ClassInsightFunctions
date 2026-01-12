@@ -27,7 +27,7 @@ public class GerarRelatorioFunction {
     public void relatorioAvaliacoes(
             @TimerTrigger(
                     name = "processarTimer",
-                    schedule = "0 0 22 * * *") // Todos os dias às 22h
+                    schedule = "0 */15 * * * *") // Executa a cada 15 minutos
             String timerInfo,
             final ExecutionContext context) {
         context.getLogger().info("Processamento agendado de avaliações iniciado: " + timerInfo);
